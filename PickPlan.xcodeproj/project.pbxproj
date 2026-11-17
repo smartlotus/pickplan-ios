@@ -1,0 +1,267 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* PickPlanCore in Frameworks */ = {isa = PBXBuildFile; productRef = B10000010000000000000001 /* PickPlanCore */; };
+		A10000020000000000000002 /* PickPlanUI in Frameworks */ = {isa = PBXBuildFile; productRef = B10000020000000000000002 /* PickPlanUI */; };
+		A10000030000000000000003 /* PickPlanAppEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000010000000000000001 /* PickPlanAppEntry.swift */; };
+		A10000040000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F10000020000000000000002 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F10000010000000000000001 /* PickPlanAppEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickPlanAppEntry.swift; sourceTree = "<group>"; };
+		F10000020000000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F10000030000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F10000040000000000000004 /* PickPlan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PickPlan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* PickPlanCore in Frameworks */,
+				A10000020000000000000002 /* PickPlanUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		G10000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				G10000020000000000000002 /* App */,
+				G10000030000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		G10000020000000000000002 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F10000010000000000000001 /* PickPlanAppEntry.swift */,
+				F10000020000000000000002 /* Assets.xcassets */,
+				F10000030000000000000003 /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		G10000030000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F10000040000000000000004 /* PickPlan.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		T10000010000000000000001 /* PickPlan */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = L10000020000000000000002 /* Build configuration list for PBXNativeTarget "PickPlan" */;
+			buildPhases = (
+				S10000010000000000000001 /* Sources */,
+				C10000010000000000000001 /* Frameworks */,
+				R10000010000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PickPlan;
+			packageProductDependencies = (
+				B10000010000000000000001 /* PickPlanCore */,
+				B10000020000000000000002 /* PickPlanUI */,
+			);
+			productName = PickPlan;
+			productReference = F10000040000000000000004 /* PickPlan.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		P10000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					T10000010000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = L10000010000000000000001 /* Build configuration list for PBXProject "PickPlan" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = zh-Hans;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				zh-Hans,
+				Base,
+			);
+			mainGroup = G10000010000000000000001;
+			packageReferences = (
+				D10000010000000000000001 /* XCLocalSwiftPackageReference "." */,
+			);
+			productRefGroup = G10000030000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				T10000010000000000000001 /* PickPlan */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R10000010000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000040000000000000004 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		S10000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000030000000000000003 /* PickPlanAppEntry.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		K10000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		K10000020000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		K10000030000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.smartlotus.pickplan.ios;
+				PRODUCT_NAME = PickPlan;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		K10000040000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.smartlotus.pickplan.ios;
+				PRODUCT_NAME = PickPlan;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		L10000010000000000000001 /* Build configuration list for PBXProject "PickPlan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				K10000010000000000000001 /* Debug */,
+				K10000020000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		L10000020000000000000002 /* Build configuration list for PBXNativeTarget "PickPlan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				K10000030000000000000003 /* Debug */,
+				K10000040000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D10000010000000000000001 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B10000010000000000000001 /* PickPlanCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D10000010000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = PickPlanCore;
+		};
+		B10000020000000000000002 /* PickPlanUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D10000010000000000000001 /* XCLocalSwiftPackageReference "." */;
+			productName = PickPlanUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = P10000010000000000000001 /* Project object */;
+}
