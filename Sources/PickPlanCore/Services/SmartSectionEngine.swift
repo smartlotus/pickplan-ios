@@ -2,26 +2,26 @@ import Foundation
 
 /// Quick-pick scheduling presets for task creation and rescheduling sheets.
 public enum QuickTimePreset: String, CaseIterable, Identifiable, Sendable {
-    case inOneHour
     case tonight
     case tomorrowMorning
     case tomorrowAfternoon
     case nextMondayMorning
+    case inOneHour
 
     public var id: String { rawValue }
 
     public func displayName(language: AppLanguage) -> String {
         switch self {
         case .inOneHour:
-            return AppLocalizer.t(zh: "1 小时后", en: "In 1 Hour", language: language)
+            return AppLocalizer.t(zh: "1 小时后", en: "+1h", language: language)
         case .tonight:
-            return AppLocalizer.t(zh: "今晚 20:00", en: "Tonight 8:00 PM", language: language)
+            return AppLocalizer.t(zh: "今晚", en: "Tonight", language: language)
         case .tomorrowMorning:
-            return AppLocalizer.t(zh: "明早 09:00", en: "Tomorrow 9:00 AM", language: language)
+            return AppLocalizer.t(zh: "明早", en: "Tomorrow AM", language: language)
         case .tomorrowAfternoon:
-            return AppLocalizer.t(zh: "明午 14:00", en: "Tomorrow 2:00 PM", language: language)
+            return AppLocalizer.t(zh: "明天下午", en: "Tomorrow PM", language: language)
         case .nextMondayMorning:
-            return AppLocalizer.t(zh: "下周一 09:00", en: "Next Mon 9:00 AM", language: language)
+            return AppLocalizer.t(zh: "下周一", en: "Next Mon", language: language)
         }
     }
 
@@ -205,7 +205,7 @@ public enum SmartSectionEngine {
 
         case .tomorrowAfternoon:
             let tomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
-            return calendar.date(bySettingHour: 14, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+            return calendar.date(bySettingHour: 15, minute: 0, second: 0, of: tomorrow) ?? tomorrow
 
         case .nextMondayMorning:
             let weekday = calendar.component(.weekday, from: now) // Sun=1, Mon=2, ..., Sat=7

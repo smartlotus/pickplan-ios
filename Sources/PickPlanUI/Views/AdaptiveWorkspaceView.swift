@@ -1,9 +1,8 @@
 import SwiftUI
 import PickPlanCore
 
-/// Primary adaptive workspace:
-/// - iPhone (compact): full-bleed views with floating morphing `GlassEffectContainer` capsule dock
-/// - iPad / macOS (regular): 3-column `NavigationSplitView` + keyboard shortcuts + live Focus/Inspector column
+/// Adaptive iPhone & iPad workspace faithfully unifying Android Pickplan's Manual + AI workflow
+/// with native Liquid Glass navigation, notification testing, scheduled local backup Vault, and Focus Timer.
 public struct AdaptiveWorkspaceView: View {
     public enum WorkspaceTab: String, CaseIterable, Identifiable {
         case manual
@@ -16,13 +15,13 @@ public struct AdaptiveWorkspaceView: View {
             switch self {
             case .manual: return AppLocalizer.t(zh: "自己做", en: "Manual", language: language)
             case .ai: return AppLocalizer.t(zh: "AI 帮做", en: "AI", language: language)
-            case .vault: return AppLocalizer.t(zh: "数据金库", en: "Vault", language: language)
+            case .vault: return AppLocalizer.t(zh: "本地数据", en: "Data", language: language)
             }
         }
 
         var symbol: String {
             switch self {
-            case .manual: return "checklist"
+            case .manual: return "list.bullet.rectangle"
             case .ai: return "sparkles"
             case .vault: return "externaldrive.badge.timemachine"
             }
@@ -44,6 +43,8 @@ public struct AdaptiveWorkspaceView: View {
     @State private var showCreateSheet: Bool = false
     @State private var showSettingsSheet: Bool = false
     @State private var showFocusModal: Bool = false
+    @State private var showPermissionAlert: Bool = false
+    @State private var refreshToastBanner: String? = nil
 
     public init(store: PlanStore) {
         self.store = store
@@ -81,9 +82,23 @@ public struct AdaptiveWorkspaceView: View {
         .sheet(isPresented: $showFocusModal) {
             FocusOverlayView(store: store)
         }
+        .alert(
+            AppLocalizer.t(zh: "通知未开启", en: "Notifications disabled", language: store.language),
+            isPresented: $showPermissionAlert
+        ) {
+            Button(AppLocalizer.t(zh: "我知道了", en: "OK", language: store.language), role: .cancel) {}
+        } message: {
+            Text(
+                AppLocalizer.t(
+                    zh: "请在系统设置里开启 Pickplan 的通知权限，然后重试。",
+                    en: "Enable notification permission for Pickplan in iOS Settings, then try again.",
+                    language: store.language
+                )
+            )
+        }
     }
 
-    // MARK: - iPhone Compact Layout (Morphing Liquid Glass Capsule Dock)
+    // MARK: - iPhone Compact Layout (Floating Liquid Glass Capsule Dock + Android AppBar Actions)
 
     private var iPhoneCompactLayout: some View {
         ZStack(alignment: .bottom) {
@@ -97,6 +112,7 @@ public struct AdaptiveWorkspaceView: View {
                             tagFilter: $tagFilter,
                             sectionFilter: $sectionFilter,
                             selectedTodoId: $selectedTodoId,
+                            onCreateTodo: { showCreateSheet = true },
                             onEditTodo: { editingTodo = $0 },
                             onStartFocus: { todo in
                                 Task {
@@ -106,90 +122,52 @@ public struct AdaptiveWorkspaceView: View {
                             }
                         )
                     case .ai:
-                        AIPlanBuilderView(store: store)
+                        AIPlanBuilderView(store: store, onOpenSettings: { showSettingsSheet = true })
                     case .vault:
                         DataVaultView(store: store)
                     }
                 }
                 .toolbar {
                     ToolbarItem(placement: .automatic) {
-                        HStack(spacing: 8) {
-                            if store.activeFocusTodoId != nil {
-                                Button {
-                                    showFocusModal = true
-                                } label: {
-                                    Label(formatFocusClock(store.focusRemainingSeconds), systemImage: "timer")
-                                        .font(.caption.monospacedDigit().bold())
-                                }
-                            }
-                            Button {
-                                Task {
-                                    let next: AppLanguage = store.language == .zh ? .en : .zh
-                                    await store.setLanguage(next)
-                                }
-                            } label: {
-                                Text(store.language == .zh ? "中" : "EN")
-                                    .font(.caption.bold())
-                            }
-                            Button {
-                                showSettingsSheet = true
-                            } label: {
-                                Image(systemName: "gearshape")
-                            }
-                        }
+                        sharedToolbarActions
                     }
                 }
             }
 
-            // Floating Liquid Glass Capsule Bar + Morphing + Orb
-            PickPlanGlassGroup(spacing: 16) {
-                HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        ForEach(WorkspaceTab.allCases) { tab in
-                            Button {
-                                HapticsBridge.impact(store.preferences.hapticsEnabled, style: 0)
-                                withAnimation(PickPlanPalette.springAnimation) {
-                                    activeTab = tab
-                                }
-                            } label: {
-                                VStack(spacing: 3) {
-                                    Image(systemName: tab.symbol)
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text(tab.title(language: store.language))
-                                        .font(.system(size: 10, weight: .semibold))
-                                }
-                                .foregroundStyle(activeTab == tab ? .white : PickPlanPalette.muted)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .background {
-                                    if activeTab == tab {
-                                        Capsule()
-                                            .fill(Color.white.opacity(0.18))
-                                            .pickPlanGlassID("activeTabIndicator", in: glassNamespace)
-                                    }
+            // Floating Liquid Glass Capsule Bar
+            PickPlanGlassGroup(spacing: 14) {
+                HStack(spacing: 4) {
+                    ForEach(WorkspaceTab.allCases) { tab in
+                        Button {
+                            HapticsBridge.impact(store.preferences.hapticsEnabled, style: 0)
+                            withAnimation(PickPlanPalette.springAnimation) {
+                                activeTab = tab
+                            }
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: tab.symbol)
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text(tab.title(language: store.language))
+                                    .font(.system(size: 10.5, weight: .semibold))
+                            }
+                            .foregroundStyle(activeTab == tab ? .white : PickPlanPalette.muted)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background {
+                                if activeTab == tab {
+                                    Capsule()
+                                        .fill(Color.white.opacity(0.18))
+                                        .pickPlanGlassID("activeTabIndicator", in: glassNamespace)
                                 }
                             }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(5)
-                    .pickPlanGlass(in: Capsule(), interactive: true)
-
-                    Button {
-                        HapticsBridge.impact(store.preferences.hapticsEnabled, style: 1)
-                        showCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 54, height: 54)
-                    }
-                    .pickPlanGlass(in: Circle(), interactive: true)
-                    .pickPlanGlassID("primaryAddOrb", in: glassNamespace)
-                    .accessibilityLabel(AppLocalizer.t(zh: "新建任务", en: "New Task", language: store.language))
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
+                .padding(5)
+                .pickPlanGlass(in: Capsule(), interactive: true)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 8)
             }
         }
     }
@@ -281,52 +259,87 @@ public struct AdaptiveWorkspaceView: View {
                         tagFilter: $tagFilter,
                         sectionFilter: $sectionFilter,
                         selectedTodoId: $selectedTodoId,
+                        onCreateTodo: { showCreateSheet = true },
                         onEditTodo: { editingTodo = $0 },
                         onStartFocus: { todo in
                             Task { await store.startFocus(forTodoId: todo.id) }
                         }
                     )
                 case .ai:
-                    AIPlanBuilderView(store: store)
+                    AIPlanBuilderView(store: store, onOpenSettings: { showSettingsSheet = true })
                 case .vault:
                     DataVaultView(store: store)
                 }
             }
             .toolbar {
                 ToolbarItemGroup(placement: .automatic) {
-                    Button {
-                        showCreateSheet = true
-                    } label: {
-                        Label(AppLocalizer.t(zh: "新建", en: "New", language: store.language), systemImage: "plus")
-                    }
-                    .keyboardShortcut("n", modifiers: .command)
-
-                    Button {
-                        Task { await store.createManualSnapshot() }
-                    } label: {
-                        Label(AppLocalizer.t(zh: "立即备份", en: "Backup", language: store.language), systemImage: "externaldrive.badge.plus")
-                    }
-                    .keyboardShortcut("b", modifiers: .command)
-
-                    Button {
-                        Task {
-                            let next: AppLanguage = store.language == .zh ? .en : .zh
-                            await store.setLanguage(next)
-                        }
-                    } label: {
-                        Text(store.language == .zh ? "中" : "EN")
-                            .font(.caption.bold())
-                    }
-
-                    Button {
-                        showSettingsSheet = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
+                    sharedToolbarActions
                 }
             }
         } detail: {
             iPadInspectorColumn
+        }
+    }
+
+    private var sharedToolbarActions: some View {
+        HStack(spacing: 8) {
+            if store.activeFocusTodoId != nil {
+                Button {
+                    showFocusModal = true
+                } label: {
+                    Label(formatFocusClock(store.focusRemainingSeconds), systemImage: "timer")
+                        .font(.caption.monospacedDigit().bold())
+                }
+            }
+
+            if activeTab == .manual {
+                Button {
+                    Task {
+                        let ok = await store.sendTestNotification()
+                        if !ok {
+                            showPermissionAlert = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: "bell.badge")
+                }
+                .accessibilityLabel(AppLocalizer.t(zh: "测试通知", en: "Test notifications", language: store.language))
+
+                Button {
+                    Task {
+                        await store.reload()
+                        refreshToastBanner = AppLocalizer.t(zh: "已刷新待办列表。", en: "Todo list refreshed.", language: store.language)
+                        try? await Task.sleep(for: .seconds(2))
+                        refreshToastBanner = nil
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .accessibilityLabel(AppLocalizer.t(zh: "刷新", en: "Refresh", language: store.language))
+            }
+
+            Button {
+                Task {
+                    let next: AppLanguage = store.language == .zh ? .en : .zh
+                    await store.setLanguage(next)
+                }
+            } label: {
+                Text(store.language == .zh ? "中" : "EN")
+                    .font(.system(size: 12, weight: .bold))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.38), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showSettingsSheet = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .keyboardShortcut(",", modifiers: .command)
+            .accessibilityLabel(AppLocalizer.t(zh: "设置", en: "Settings", language: store.language))
         }
     }
 
@@ -395,7 +408,7 @@ public struct AdaptiveWorkspaceView: View {
             Spacer()
             if let deleted = store.lastDeletedTodo {
                 HStack(spacing: 12) {
-                    Text(AppLocalizer.t(zh: "已删除「\(deleted.title)」", en: "Deleted \"\(deleted.title)\"", language: store.language))
+                    Text(AppLocalizer.t(zh: "已删除任务「\(deleted.title)」", en: "Deleted \"\(deleted.title)\"", language: store.language))
                         .font(.subheadline)
                         .lineLimit(1)
                     Spacer()
@@ -413,8 +426,15 @@ public struct AdaptiveWorkspaceView: View {
                 .padding(.vertical, 12)
                 .pickPlanGlass(in: Capsule(), interactive: true)
                 .padding(.horizontal, 18)
-                .padding(.bottom, isRegularLayout ? 18 : 84)
+                .padding(.bottom, isRegularLayout ? 18 : 82)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let refreshMsg = refreshToastBanner {
+                Text(refreshMsg)
+                    .font(.subheadline)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .pickPlanGlass(in: Capsule())
+                    .padding(.bottom, isRegularLayout ? 18 : 82)
             } else if let banner = store.lastStatusBanner {
                 HStack(spacing: 10) {
                     Image(systemName: banner.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
@@ -435,7 +455,7 @@ public struct AdaptiveWorkspaceView: View {
                 .padding(.vertical, 12)
                 .pickPlanGlass(in: Capsule(), interactive: true)
                 .padding(.horizontal, 18)
-                .padding(.bottom, isRegularLayout ? 18 : 84)
+                .padding(.bottom, isRegularLayout ? 18 : 82)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

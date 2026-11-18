@@ -5,8 +5,8 @@ let package = Package(
     name: "PickPlan",
     defaultLocalization: "zh-Hans",
     platforms: [
-        .iOS(.v18),
-        .macOS(.v15)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(
@@ -30,7 +30,10 @@ let package = Package(
         .target(
             name: "PickPlanUI",
             dependencies: ["PickPlanCore"],
-            path: "Sources/PickPlanUI"
+            path: "Sources/PickPlanUI",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .executableTarget(
             name: "PickPlanPreviewApp",

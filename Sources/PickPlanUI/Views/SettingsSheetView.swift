@@ -1,7 +1,11 @@
 import SwiftUI
 import PickPlanCore
 
-/// Settings sheet covering all 7 OpenAI-compatible AI presets, connection testing, language, and haptics.
+/// Faithful Liquid Glass port of Android Pickplan's `SettingsDialog`:
+/// - `AI 引擎设置` (`AI Engine Settings`)
+/// - 7 platform presets (`DeepSeek`, `Kimi (Moonshot)`, `Tongyi Qwen`, `GLM`, `SiliconFlow`, `OpenAI`, `Custom`)
+/// - Locks Base URL & Model fields when preset != `Custom` (matching Android behavior)
+/// - `测试连接` (`Test Connection`) showing HTTP 200 status + Language/Haptics + Official Site link
 public struct SettingsSheetView: View {
     @ObservedObject private var store: PlanStore
     @Environment(\.dismiss) private var dismiss
@@ -17,9 +21,89 @@ public struct SettingsSheetView: View {
         self.store = store
     }
 
+    private var isCustomProvider: Bool {
+        selectedProviderName == "Custom"
+    }
+
     public var body: some View {
         NavigationStack {
             Form {
+                Section(
+                    header: Text(AppLocalizer.t(zh: "AI 引擎设置", en: "AI Engine Settings", language: store.language)),
+                    footer: Text(AppLocalizer.t(zh: "可快速选择平台，或自定义接口与模型。", en: "Pick a provider quickly, or use custom endpoint/model.", language: store.language))
+                ) {
+                    Picker(
+                        AppLocalizer.t(zh: "平台", en: "Provider", language: store.language),
+                        selection: $selectedProviderName
+                    ) {
+                        ForEach(AIProviderPreset.presets) { preset in
+                            Text(preset.name).tag(preset.name)
+                        }
+                    }
+                    .onChange(of: selectedProviderName) { _, newValue in
+                        if let preset = AIProviderPreset.preset(named: newValue), preset.name != "Custom" {
+                            baseUrl = preset.baseUrl
+                            modelName = preset.defaultModel
+                            testResultMessage = ""
+                        }
+                    }
+
+                    TextField("Base URL", text: $baseUrl)
+                        .disabled(!isCustomProvider)
+                        .foregroundStyle(isCustomProvider ? .white : Color.gray)
+                        .autocorrectionDisabled()
+
+                    TextField(AppLocalizer.t(zh: "模型", en: "Model", language: store.language), text: $modelName)
+                        .disabled(!isCustomProvider)
+                        .foregroundStyle(isCustomProvider ? .white : Color.gray)
+                        .autocorrectionDisabled()
+
+                    SecureField("API Key", text: $apiKey)
+
+                    Button {
+                        Task {
+                            await store.updateAISettings(
+                                AISettingsRecord(
+                                    providerName: selectedProviderName,
+                                    baseUrl: baseUrl,
+                                    modelName: modelName,
+                                    apiKey: apiKey.isEmpty ? nil : apiKey
+                                )
+                            )
+                            let res = await store.testAIConnection()
+                            switch res {
+                            case .success:
+                                testSucceeded = true
+                                testResultMessage = AppLocalizer.t(
+                                    zh: "连接成功（200）。",
+                                    en: "Connection OK (200).",
+                                    language: store.language
+                                )
+                            case .failure(let err):
+                                testSucceeded = false
+                                testResultMessage = "\(AppLocalizer.t(zh: "连接失败", en: "Connection failed", language: store.language)): \(err.localizedDescription)"
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Label(
+                                AppLocalizer.t(zh: "测试连接", en: "Test Connection", language: store.language),
+                                systemImage: "network"
+                            )
+                            if store.isLoadingAI {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
+                    }
+
+                    if !testResultMessage.isEmpty {
+                        Text(testResultMessage)
+                            .font(.caption)
+                            .foregroundStyle(testSucceeded == true ? PickPlanPalette.successMint : PickPlanPalette.deadlineCoral)
+                    }
+                }
+
                 Section(AppLocalizer.t(zh: "语言与触感", en: "Language & Tactile Feedback", language: store.language)) {
                     Picker(
                         AppLocalizer.t(zh: "界面语言", en: "Language", language: store.language),
@@ -42,73 +126,21 @@ public struct SettingsSheetView: View {
                     )
                 }
 
-                Section(AppLocalizer.t(zh: "AI 大模型接口 (BYOK)", en: "AI Engine (OpenAI-Compatible)", language: store.language)) {
-                    Picker(
-                        AppLocalizer.t(zh: "平台预设", en: "Provider Preset", language: store.language),
-                        selection: $selectedProviderName
-                    ) {
-                        ForEach(AIProviderPreset.presets) { preset in
-                            Text(preset.name).tag(preset.name)
-                        }
+                Section(AppLocalizer.t(zh: "关于 Pickplan iOS", en: "About Pickplan iOS", language: store.language)) {
+                    if let url = URL(string: "https://pickplan-ios.pages.dev/") {
+                        Link(
+                            AppLocalizer.t(
+                                zh: "官方网站：https://pickplan-ios.pages.dev/",
+                                en: "Official Website: https://pickplan-ios.pages.dev/",
+                                language: store.language
+                            ),
+                            destination: url
+                        )
                     }
-                    .onChange(of: selectedProviderName) { _, newValue in
-                        if let preset = AIProviderPreset.preset(named: newValue), preset.name != "Custom" {
-                            baseUrl = preset.baseUrl
-                            modelName = preset.defaultModel
-                        }
-                    }
-
-                    TextField("Base URL", text: $baseUrl)
-                        .autocorrectionDisabled()
-                    TextField(AppLocalizer.t(zh: "模型名称", en: "Model Name", language: store.language), text: $modelName)
-                        .autocorrectionDisabled()
-                    SecureField("API Key (sk-...)", text: $apiKey)
-
-                    Button {
-                        Task {
-                            await store.updateAISettings(
-                                AISettingsRecord(
-                                    providerName: selectedProviderName,
-                                    baseUrl: baseUrl,
-                                    modelName: modelName,
-                                    apiKey: apiKey.isEmpty ? nil : apiKey
-                                )
-                            )
-                            let res = await store.testAIConnection()
-                            switch res {
-                            case .success(let msg):
-                                testSucceeded = true
-                                testResultMessage = "OK: \(msg)"
-                            case .failure(let err):
-                                testSucceeded = false
-                                testResultMessage = err.localizedDescription
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Label(
-                                AppLocalizer.t(zh: "保存并测试连接", en: "Save & Test Connection", language: store.language),
-                                systemImage: "network"
-                            )
-                            if store.isLoadingAI {
-                                Spacer()
-                                ProgressView()
-                            }
-                        }
-                    }
-
-                    if !testResultMessage.isEmpty {
-                        Text(testResultMessage)
-                            .font(.caption)
-                            .foregroundStyle(testSucceeded == true ? PickPlanPalette.successMint : PickPlanPalette.deadlineCoral)
-                    }
-                }
-
-                Section(AppLocalizer.t(zh: "零费用使用说明", en: "Zero-Cost Sideloading", language: store.language)) {
                     Text(
                         AppLocalizer.t(
-                            zh: "本应用未启用 iCloud 或付费 Push Entitlements。定时本地备份文件可在系统「文件」App → Pickplan → Backups 中直接访问。",
-                            en: "Uses zero paid entitlements. Scheduled local backups are accessible directly in the iOS Files app under Pickplan/Backups.",
+                            zh: "零付费权限：所有待办、AI 设置与定时自动快照均保存在本机，并可通过系统「文件」App 访问 Pickplan/Backups。",
+                            en: "Zero paid entitlements: tasks, AI settings, and scheduled snapshots stay locally on-device and are accessible in the iOS Files app under Pickplan/Backups.",
                             language: store.language
                         )
                     )
@@ -121,8 +153,13 @@ public struct SettingsSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalizer.t(zh: "取消", en: "Cancel", language: store.language)) {
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(AppLocalizer.t(zh: "完成", en: "Done", language: store.language)) {
+                    Button(AppLocalizer.t(zh: "保存", en: "Save", language: store.language)) {
                         Task {
                             await store.updateAISettings(
                                 AISettingsRecord(

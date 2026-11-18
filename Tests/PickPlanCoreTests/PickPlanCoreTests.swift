@@ -726,4 +726,42 @@ struct PickPlanCoreTests {
             #expect(store.chatHistory.last?.isAdded == true)
         }
     }
+
+    // MARK: - 16. Android Parity: Per-Draft Edit, Single Add, Section Labels & Quick Presets
+
+    @Test("Per-draft editing, single-draft addition, Android quick presets and section titles match Android")
+    @MainActor
+    func perDraftEditSingleAddAndAndroidParity() async throws {
+        try await withTempVaultAsync { vault in
+            let store = PlanStore(vault: vault)
+
+            await store.sendChatPrompt("明天上午买菜；明天下午三点开会", preferAI: false)
+            let draftMsg = try #require(store.chatHistory.last)
+            #expect(draftMsg.parsedTodos.count == 2)
+
+            var edited = draftMsg.parsedTodos[0]
+            edited.title = "买菜和咖啡"
+            await store.updateParsedTodoInChat(messageId: draftMsg.id, updatedTodo: edited)
+            #expect(store.chatHistory.last?.parsedTodos.first?.title == "买菜和咖啡")
+
+            await store.addSingleParsedTodoFromChat(messageId: draftMsg.id, todoId: edited.id)
+            #expect(store.todos.count == 1)
+            #expect(store.todos.first?.title == "买菜和咖啡")
+            #expect(store.chatHistory.last?.parsedTodos.count == 1)
+            #expect(store.chatHistory.last?.isAdded == false)
+
+            let secondDraft = try #require(store.chatHistory.last?.parsedTodos.first)
+            await store.addSingleParsedTodoFromChat(messageId: draftMsg.id, todoId: secondDraft.id)
+            #expect(store.todos.count == 2)
+            #expect(store.chatHistory.last?.parsedTodos.isEmpty == true)
+            #expect(store.chatHistory.last?.isAdded == true)
+        }
+
+        let cal = makeReferenceCalendar()
+        let base = makeDate(year: 2026, month: 11, day: 17, hour: 10, minute: 0, calendar: cal)
+        let tmrPm = QuickTimePreset.tomorrowAfternoon.date(from: base, calendar: cal)
+        #expect(cal.component(.hour, from: tmrPm) == 15)
+        #expect(TimeSectionKind.later.title(language: .zh) == "之后")
+        #expect(TimeSectionKind.unscheduled.title(language: .zh) == "无时间")
+    }
 }

@@ -124,6 +124,26 @@ public final class PlanStore: ObservableObject {
         return granted
     }
 
+    @discardableResult
+    public func sendTestNotification() async -> Bool {
+        let ok = await notifications.sendInstantTestNotification(language: language)
+        if ok {
+            setBanner(
+                zh: "已获取通知权限，正在发送测试通知。",
+                en: "Notification permission granted. Sending test notification..."
+            )
+        } else {
+            setErrorBanner(
+                AppLocalizer.t(
+                    zh: "请先开启通知权限。",
+                    en: "Please grant notification permission.",
+                    language: language
+                )
+            )
+        }
+        return ok
+    }
+
     // MARK: - Todo CRUD & Undo
 
     @discardableResult
@@ -315,9 +335,24 @@ public final class PlanStore: ObservableObject {
         refreshFromVault()
         await notifications.syncReminders(for: todos, language: language)
         setBanner(
-            zh: "已将 \(entry.parsedTodos.count) 条待办加入清单",
-            en: "Added \(entry.parsedTodos.count) task(s) to your list"
+            zh: "已加入 \(entry.parsedTodos.count) 个任务。",
+            en: "\(entry.parsedTodos.count) tasks added."
         )
+    }
+
+    public func updateParsedTodoInChat(messageId: String, updatedTodo: TodoItem) async {
+        vault.updateParsedTodoInChat(messageId: messageId, updatedTodo: updatedTodo)
+        refreshFromVault()
+    }
+
+    public func addSingleParsedTodoFromChat(messageId: String, todoId: String) async {
+        guard let todo = vault.removeSingleParsedTodoFromChat(messageId: messageId, todoId: todoId) else {
+            return
+        }
+        vault.upsertTodo(todo)
+        refreshFromVault()
+        await notifications.scheduleReminder(for: todo, language: language)
+        setBanner(zh: "已加入计划。", en: "Added to plan.")
     }
 
     public func clearChatHistory() async {

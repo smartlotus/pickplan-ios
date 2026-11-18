@@ -319,8 +319,8 @@ public enum TimeSectionKind: String, Codable, CaseIterable, Sendable, Identifiab
         case .overdue: return AppLocalizer.t(zh: "已逾期", en: "Overdue", language: language)
         case .today: return AppLocalizer.t(zh: "今天", en: "Today", language: language)
         case .tomorrow: return AppLocalizer.t(zh: "明天", en: "Tomorrow", language: language)
-        case .later: return AppLocalizer.t(zh: "以后", en: "Later", language: language)
-        case .unscheduled: return AppLocalizer.t(zh: "未安排", en: "Unscheduled", language: language)
+        case .later: return AppLocalizer.t(zh: "之后", en: "Later", language: language)
+        case .unscheduled: return AppLocalizer.t(zh: "无时间", en: "No time", language: language)
         case .completed: return AppLocalizer.t(zh: "已完成", en: "Completed", language: language)
         }
     }

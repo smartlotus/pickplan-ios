@@ -1,5 +1,6 @@
-# Optional GitHub Actions workflow template for building an unsigned iOS/iPadOS .ipa
-# Copy this file to `.github/workflows/build-unsigned-ipa.yml` via GitHub Web UI or a token with `workflow` scope.
+# GitHub Actions workflow template for building an unsigned native iOS/iPadOS .ipa
+# Copy this file to `.github/workflows/build-unsigned-ipa.yml` via GitHub Web UI
+# or after refreshing CLI auth with: gh auth refresh -h github.com -s workflow
 
 name: Build Unsigned Pickplan iOS IPA
 
@@ -21,7 +22,9 @@ jobs:
           swift --version
 
       - name: Run PickPlanCore unit tests
-        run: swift test
+        run: |
+          chmod +x scripts/run_tests.sh
+          ./scripts/run_tests.sh || swift test
 
       - name: Build unsigned iOS & iPadOS IPA
         run: |

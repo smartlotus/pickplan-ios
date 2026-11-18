@@ -22,8 +22,8 @@ public struct PickPlanExportDocument: FileDocument, @unchecked Sendable {
 
 /// Comprehensive local Data Vault:
 /// - Lossless Import & Export (`.pickplan.json` v2 + Android v1 JSON + Markdown)
-/// - Scheduled Local Auto-Backup configuration & instant snapshots
-/// - Storage telemetry, snapshot timeline preview/pin/restore/delete, and data hygiene actions
+/// - Scheduled Local Auto-Backup configuration (interval, preferred time, background dirty snapshot, retention)
+/// - Storage telemetry, snapshot preview sheet, pin/restore/export/delete, and data hygiene actions
 public struct DataVaultView: View {
     @ObservedObject private var store: PlanStore
 
@@ -37,6 +37,8 @@ public struct DataVaultView: View {
     @State private var importSummary: ImportPreviewSummary? = nil
     @State private var selectedImportStrategy: ImportStrategy = .smartMerge
     @State private var showImportReviewSheet: Bool = false
+    @State private var previewedSnapshot: BackupSnapshotMetadata? = nil
+    @State private var previewedEnvelope: PickPlanBackupEnvelope? = nil
     @State private var showResetConfirmation: Bool = false
 
     public init(store: PlanStore) {
@@ -52,7 +54,7 @@ public struct DataVaultView: View {
                 snapshotTimelineCard
                 dataHygieneCard
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.top, 10)
             .padding(.bottom, 110)
         }
@@ -80,6 +82,9 @@ public struct DataVaultView: View {
         }
         .sheet(isPresented: $showImportReviewSheet) {
             importReviewSheet
+        }
+        .sheet(item: $previewedSnapshot) { meta in
+            snapshotPreviewSheet(meta)
         }
         .confirmationDialog(
             AppLocalizer.t(zh: "确认重置全部本地数据？", en: "Reset all local data?", language: store.language),
@@ -155,7 +160,7 @@ public struct DataVaultView: View {
             Label(AppLocalizer.t(zh: "本地导入与导出", en: "Local Import & Export", language: store.language), systemImage: "arrow.up.arrow.down.circle.fill")
                 .font(.headline)
 
-            Text(AppLocalizer.t(zh: "导出带 SHA256 校验的 .pickplan.json v2 文件（与 Web App 100% 互通），并无损兼容原 Android v1 JSON 导入。", en: "Export SHA256-verified .pickplan.json v2 archives (shared with Web App) and seamlessly import Android v1 JSON.", language: store.language))
+            Text(AppLocalizer.t(zh: "导出带 SHA256 校验的 .pickplan.json v2 文件或 Markdown 清单，并无损兼容原 Android 版 JSON 导入。", en: "Export SHA256-verified .pickplan.json v2 archives or Markdown, and seamlessly import Android Pickplan v1 JSON.", language: store.language))
                 .font(.caption)
                 .foregroundStyle(PickPlanPalette.muted)
 
@@ -188,7 +193,7 @@ public struct DataVaultView: View {
                         .background(Color.white, in: Capsule())
                         .foregroundStyle(.black)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PickPlanPressScaleStyle())
 
                 Button {
                     let md = store.exportMarkdownText()
@@ -203,19 +208,19 @@ public struct DataVaultView: View {
                         .padding(.vertical, 10)
                         .pickPlanGlass(in: Capsule(), interactive: true)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PickPlanPressScaleStyle())
             }
 
             Button {
                 showImporter = true
             } label: {
-                Label(AppLocalizer.t(zh: "从本机 / Files 导入备份文件…", en: "Import Archive from Files…", language: store.language), systemImage: "square.and.arrow.down")
+                Label(AppLocalizer.t(zh: "从本机 / 文件 App 导入备份…", en: "Import Archive from Files…", language: store.language), systemImage: "square.and.arrow.down")
                     .font(.subheadline.bold())
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .pickPlanGlass(in: Capsule(), interactive: true)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PickPlanPressScaleStyle())
         }
         .padding(16)
         .pickPlanGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -267,9 +272,26 @@ public struct DataVaultView: View {
                 Text(AppLocalizer.t(zh: "每 1 小时", en: "Every 1 hour", language: store.language)).tag(1)
                 Text(AppLocalizer.t(zh: "每 6 小时", en: "Every 6 hours", language: store.language)).tag(6)
                 Text(AppLocalizer.t(zh: "每 12 小时", en: "Every 12 hours", language: store.language)).tag(12)
-                Text(AppLocalizer.t(zh: "每 24 小时", en: "Every 24 hours", language: store.language)).tag(24)
-                Text(AppLocalizer.t(zh: "每 7 天", en: "Every 7 days", language: store.language)).tag(168)
+                Text(AppLocalizer.t(zh: "每天（24 小时）", en: "Daily (24 hours)", language: store.language)).tag(24)
+                Text(AppLocalizer.t(zh: "每周（7 天）", en: "Weekly (7 days)", language: store.language)).tag(168)
             }
+
+            DatePicker(
+                AppLocalizer.t(zh: "每日首选备份时间", en: "Preferred Daily Time", language: store.language),
+                selection: Binding(
+                    get: {
+                        Calendar.current.date(bySettingHour: policy.preferredHour, minute: policy.preferredMinute, second: 0, of: Date()) ?? Date()
+                    },
+                    set: { date in
+                        let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
+                        var next = policy
+                        next.preferredHour = comps.hour ?? 22
+                        next.preferredMinute = comps.minute ?? 0
+                        Task { await store.updateBackupPolicy(next) }
+                    }
+                ),
+                displayedComponents: .hourAndMinute
+            )
 
             Picker(
                 AppLocalizer.t(zh: "最多保留快照数", en: "Max Retention", language: store.language),
@@ -298,7 +320,7 @@ public struct DataVaultView: View {
                     .background(Color.white, in: Capsule())
                     .foregroundStyle(.black)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PickPlanPressScaleStyle())
         }
         .padding(16)
         .pickPlanGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -308,7 +330,7 @@ public struct DataVaultView: View {
 
     private var snapshotTimelineCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(AppLocalizer.t(zh: "快照时间线与一键恢复", en: "Snapshot Timeline", language: store.language), systemImage: "tray.full.fill")
+            Label(AppLocalizer.t(zh: "快照时间线与预览回滚", en: "Snapshot Timeline", language: store.language), systemImage: "tray.full.fill")
                 .font(.headline)
 
             if store.snapshots.isEmpty {
@@ -332,6 +354,14 @@ public struct DataVaultView: View {
                                 .font(.caption2)
                                 .foregroundStyle(PickPlanPalette.muted)
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let env = try? store.vault.loadSnapshotPayload(id: snap.id) {
+                                previewedEnvelope = env
+                                previewedSnapshot = snap
+                            }
+                        }
+
                         Spacer()
                         HStack(spacing: 6) {
                             Button {
@@ -367,6 +397,47 @@ public struct DataVaultView: View {
         }
         .padding(16)
         .pickPlanGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func snapshotPreviewSheet(_ meta: BackupSnapshotMetadata) -> some View {
+        NavigationStack {
+            List {
+                Section(AppLocalizer.t(zh: "快照信息", en: "Snapshot Metadata", language: store.language)) {
+                    LabeledContent(AppLocalizer.t(zh: "文件名", en: "File", language: store.language), value: meta.fileName)
+                    LabeledContent(AppLocalizer.t(zh: "任务数", en: "Tasks", language: store.language), value: "\(meta.taskCount)")
+                    LabeledContent("SHA256", value: String(meta.checksum.prefix(16)) + "…")
+                }
+
+                if let todos = previewedEnvelope?.payload.todos {
+                    Section(AppLocalizer.t(zh: "内含任务预览", en: "Included Tasks", language: store.language)) {
+                        ForEach(todos) { t in
+                            HStack {
+                                Image(systemName: t.isCompleted ? "checkmark.square.fill" : "square")
+                                Text(t.title)
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(AppLocalizer.t(zh: "快照内容预览", en: "Snapshot Preview", language: store.language))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppLocalizer.t(zh: "关闭", en: "Close", language: store.language)) {
+                        previewedSnapshot = nil
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(AppLocalizer.t(zh: "恢复此快照", en: "Restore", language: store.language)) {
+                        Task {
+                            await store.restoreSnapshot(id: meta.id)
+                            previewedSnapshot = nil
+                        }
+                    }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - 5. Data Hygiene

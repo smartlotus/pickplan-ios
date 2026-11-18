@@ -39,13 +39,13 @@ public struct AIProviderPreset: Identifiable, Equatable, Hashable, Sendable {
             id: "qwen",
             name: "Tongyi Qwen",
             baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-            defaultModel: "qwen-plus"
+            defaultModel: "qwen-turbo"
         ),
         AIProviderPreset(
             id: "glm",
             name: "GLM",
             baseUrl: "https://open.bigmodel.cn/api/paas/v4",
-            defaultModel: "glm-4-flash"
+            defaultModel: "glm-4"
         ),
         AIProviderPreset(
             id: "siliconflow",
@@ -139,8 +139,45 @@ public final class AIService: Sendable {
         self.session = session
     }
 
-    /// Sends a minimal ping prompt to verify endpoint, model, and API key validity.
+    /// Verifies endpoint, API key, and model compatibility using `GET /models` (matching Android Pickplan),
+    /// falling back to a minimal `/chat/completions` ping when `/models` returns 404/405.
     public func testConnection(settings: AISettingsRecord) async throws -> String {
+        let baseUrlTrimmed = settings.baseUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !baseUrlTrimmed.isEmpty else {
+            throw AIServiceError.missingConfiguration("AI base URL is empty.")
+        }
+        let apiKeyTrimmed = settings.apiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let requiresKey = AIProviderPreset.preset(named: settings.providerName)?.requiresApiKey ?? false
+        if requiresKey && apiKeyTrimmed.isEmpty {
+            throw AIServiceError.missingConfiguration("API key is required for \(settings.providerName).")
+        }
+
+        var cleanBase = baseUrlTrimmed
+        while cleanBase.hasSuffix("/") { cleanBase.removeLast() }
+        if cleanBase.hasSuffix("/chat/completions") {
+            cleanBase = String(cleanBase.dropLast("/chat/completions".count))
+        }
+
+        if let modelsURL = URL(string: "\(cleanBase)/models"), modelsURL.scheme != nil, modelsURL.host != nil {
+            var req = URLRequest(url: modelsURL)
+            req.httpMethod = "GET"
+            req.timeoutInterval = 12
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            if !apiKeyTrimmed.isEmpty {
+                req.setValue("Bearer \(apiKeyTrimmed)", forHTTPHeaderField: "Authorization")
+            }
+            let (data, response) = try await session.data(for: req)
+            if let http = response as? HTTPURLResponse {
+                if http.statusCode == 200 {
+                    return "200"
+                }
+                if http.statusCode != 404 && http.statusCode != 405 {
+                    let body = String(data: data, encoding: .utf8) ?? ""
+                    throw AIServiceError.httpError(statusCode: http.statusCode, message: String(body.prefix(120)))
+                }
+            }
+        }
+
         let content = try await performChatCompletion(
             systemPrompt: "Reply with OK only.",
             userPrompt: "ping",
@@ -148,7 +185,7 @@ public final class AIService: Sendable {
             temperature: 0.0
         )
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "OK" : trimmed
+        return trimmed.isEmpty ? "200" : trimmed
     }
 
     /// Extracts one or more structured `TodoItem`s from freeform text using an OpenAI-compatible endpoint.

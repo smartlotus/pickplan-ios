@@ -222,6 +222,39 @@ public final class LocalVaultStore: @unchecked Sendable {
         saveStateLocked()
     }
 
+    public func updateParsedTodoInChat(messageId: String, updatedTodo: TodoItem) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard var history = state.chatHistory,
+              let idx = history.firstIndex(where: { $0.id == messageId })
+        else {
+            return
+        }
+        history[idx].parsedTodos = history[idx].parsedTodos.map { $0.id == updatedTodo.id ? updatedTodo : $0 }
+        state.chatHistory = history
+        state.preferences.hasPendingChangesForBackup = true
+        saveStateLocked()
+    }
+
+    public func removeSingleParsedTodoFromChat(messageId: String, todoId: String) -> TodoItem? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard var history = state.chatHistory,
+              let idx = history.firstIndex(where: { $0.id == messageId }),
+              let todoIdx = history[idx].parsedTodos.firstIndex(where: { $0.id == todoId })
+        else {
+            return nil
+        }
+        let removed = history[idx].parsedTodos.remove(at: todoIdx)
+        if history[idx].parsedTodos.isEmpty {
+            history[idx].isAdded = true
+        }
+        state.chatHistory = history
+        state.preferences.hasPendingChangesForBackup = true
+        saveStateLocked()
+        return removed
+    }
+
     // MARK: - Archive Export & Import
 
     public func exportArchive(
