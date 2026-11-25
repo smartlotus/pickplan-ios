@@ -46,7 +46,10 @@
    - Team 选择你的免费 **Personal Team (Apple ID)**。
    - 将 `Bundle Identifier` 修改为个人唯一前缀（例如 `com.yourname.pickplan.ios`）。
    - Capabilities 保持空白（零付费 Entitlements，无需 Push / iCloud 权限）。
-4. 用 USB 连接 iPhone 或 iPad（支持“无线连接网络设备”），点击 **Run (`⌘R`)** 即可直装原生 App。
+4. 用 USB 连接 iPhone 或 iPad（支持“无线连接网络设备”），点击 **Run (`⌘R`)** 即可直装原生 App；或者登录 Xcode Accounts 并开启 iPhone「开发者模式」后直接执行一键脚本：
+   ```bash
+   ./scripts/install_to_iphone.sh
+   ```
 
 ---
 
