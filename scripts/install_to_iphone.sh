@@ -41,12 +41,18 @@ if echo "${DEV_DETAILS}" | grep -q "Developer Mode is turned off\|Developer Mode
 fi
 
 # 3. Auto-detect Apple Development Team ID if omitted
+extract_team_id() {
+  local key="$1"
+  defaults read com.apple.dt.Xcode "${key}" 2>/dev/null \
+    | sed -nE 's/.*teamID[[:space:]]*=[[:space:]]*"?([A-Za-z0-9]+)"?;.*/\1/p' \
+    | head -n 1 || true
+}
+
 if [[ -z "${TEAM_ID}" ]]; then
-  TEAM_ID="$(
-    defaults read com.apple.dt.Xcode IDEProvisioningTeams 2>/dev/null \
-      | grep -m 1 -E 'teamID\s*=' \
-      | sed -E 's/.*teamID\s*=\s*"?([A-Z0-9]+)"?;.*/\1/' || true
-  )"
+  TEAM_ID="$(extract_team_id IDEProvisioningTeamByIdentifier)"
+fi
+if [[ -z "${TEAM_ID}" ]]; then
+  TEAM_ID="$(extract_team_id IDEProvisioningTeams)"
 fi
 
 if [[ -z "${TEAM_ID}" ]]; then
@@ -61,12 +67,13 @@ xcodebuild \
   -project "${ROOT_DIR}/PickPlan.xcodeproj" \
   -scheme PickPlan \
   -configuration Release \
-  -destination "id=${UDID}" \
+  -destination "generic/platform=iOS" \
   -derivedDataPath "${DERIVED_DIR}" \
   -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
   DEVELOPMENT_TEAM="${TEAM_ID}" \
   PRODUCT_BUNDLE_IDENTIFIER="${BUNDLE_ID}" \
-  clean build
+  build
 
 APP_BUNDLE="${DERIVED_DIR}/Build/Products/Release-iphoneos/PickPlan.app"
 if [[ ! -d "${APP_BUNDLE}" ]]; then
@@ -75,7 +82,10 @@ if [[ ! -d "${APP_BUNDLE}" ]]; then
 fi
 
 echo "[3/4] 安装 PickPlan.app 到设备 ${UDID}..."
-xcrun devicectl device install app --device "${UDID}" "${APP_BUNDLE}"
+if ! xcrun devicectl device install app --device "${UDID}" "${APP_BUNDLE}"; then
+  echo "安装失败：若上方出现 CryptexKitHost.TatsuError / 12051，请暂时关闭电脑 VPN（或将 gs.apple.com 设为直连）并保持 iPhone 解锁后重试。"
+  exit 1
+fi
 
 echo "[4/4] 尝试启动 Pickplan..."
 xcrun devicectl device process launch --device "${UDID}" "${BUNDLE_ID}" || \
